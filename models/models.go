@@ -53,3 +53,13 @@ type ServerResponse struct {
 type ServerVotedResponse struct {
 	Voted bool `json:"voted"`
 }
+
+type UserResponse struct {
+	ID         string           `json:"id" bson:"discordId"`
+	Username   string           `json:"username" bson:"username"`
+	GlobalName string           `json:"globalName" bson:"globalName"`
+	Avatar     string           `json:"avatar" bson:"avatar"`
+	Badges     []string         `json:"badges" bson:"badges"`
+	Bots       []BotResponse    `json:"bots" bson:"bots"`
+	Servers    []ServerResponse `json:"servers" bson:"servers"`
+}

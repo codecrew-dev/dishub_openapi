@@ -58,6 +58,13 @@ func main() {
 		}
 	}
 
+	// User routes
+	users := r.Group("/users")
+	{
+		// Public endpoint
+		users.GET("/:id", handlers.GetUserInfo)
+	}
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "3002"
