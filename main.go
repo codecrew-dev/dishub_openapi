@@ -46,6 +46,18 @@ func main() {
 		}
 	}
 
+	// Server routes
+	servers := r.Group("/servers")
+	{
+		authorized := servers.Group("")
+		authorized.Use(middleware.AuthMiddleware())
+		{
+			authorized.GET("", handlers.GetServerList)
+			authorized.GET("/:id", handlers.GetServerInfo)
+			authorized.GET("/:id/voted", handlers.CheckServerVote)
+		}
+	}
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "3002"

@@ -35,3 +35,21 @@ type DeveloperApp struct {
 	TokenPrefix string             `bson:"tokenPrefix"`
 	TokenHash   string             `bson:"tokenHash"`
 }
+
+type ServerResponse struct {
+	ID          string   `json:"id" bson:"serverId"`
+	Name        string   `json:"name" bson:"name"`
+	Description string   `json:"description" bson:"description"`
+	Icon        string   `json:"icon" bson:"icon"`
+	OwnerID     string   `json:"ownerId" bson:"ownerId"`
+	Tags        []string `json:"tags" bson:"tags"`
+	Votes       int      `json:"votes" bson:"hearts"`
+	Members     int      `json:"members" bson:"memberCount"`
+	Online      bool     `json:"online" bson:"online"`
+	Verified    bool     `json:"verified" bson:"verified"`
+	BoostTier   int      `json:"boostTier" bson:"boostTier"`
+}
+
+type ServerVotedResponse struct {
+	Voted bool `json:"voted"`
+}
