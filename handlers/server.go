@@ -67,10 +67,14 @@ func CheckServerVote(c *gin.Context) {
 		return
 	}
 
-	// For servers, there isn't a single token owner like bots.
-	// But according to user request, all relevant endpoints require proper authentication.
-	// CheckBotVote check if token belongs to bot. For servers, we should probably check if it's a valid developer token at least.
-	
+	// Verify if the token belongs to this server
+	appVal, _ := c.Get("app")
+	app := appVal.(models.DeveloperApp)
+	if app.TargetType != "server" || app.TargetId != serverID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Token mismatch for this server"})
+		return
+	}
+
 	collection := database.GetCollection("servervotes")
 	
 	// Check if vote exists and was updated within the last 12 hours
