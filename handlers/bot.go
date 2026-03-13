@@ -37,6 +37,16 @@ func GetBotList(c *gin.Context) {
 		return
 	}
 
+	for i := range bots {
+		bots[i].Library = bots[i].Submission.Library
+		bots[i].Website = bots[i].Submission.Website
+		bots[i].SupportServer = bots[i].Submission.SupportServer
+		bots[i].InviteUrl = bots[i].Submission.InviteUrl
+		bots[i].BotLangs = bots[i].Submission.BotLangs
+		bots[i].ShortDescs = bots[i].Submission.ShortDescs
+		bots[i].LongDescs = bots[i].Submission.LongDescs
+	}
+
 	c.JSON(http.StatusOK, bots)
 }
 
@@ -54,6 +64,14 @@ func GetBotInfo(c *gin.Context) {
 		}
 		return
 	}
+
+	bot.Library = bot.Submission.Library
+	bot.Website = bot.Submission.Website
+	bot.SupportServer = bot.Submission.SupportServer
+	bot.InviteUrl = bot.Submission.InviteUrl
+	bot.BotLangs = bot.Submission.BotLangs
+	bot.ShortDescs = bot.Submission.ShortDescs
+	bot.LongDescs = bot.Submission.LongDescs
 
 	c.JSON(http.StatusOK, bot)
 }
@@ -121,5 +139,5 @@ func UpdateBotStats(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"success": true, "servers": req.Servers, "shards": req.Shards})
+	c.JSON(http.StatusOK, gin.H{"success": true, "servers": req.Servers, "shards": req.Shards, "message": "Stats updated successfully"})
 }
