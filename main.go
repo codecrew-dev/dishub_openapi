@@ -43,6 +43,8 @@ func main() {
 			authorized.GET("/:id", handlers.GetBotInfo)
 			authorized.GET("/:id/voted", handlers.CheckBotVote)
 			authorized.POST("/:id/stats", handlers.UpdateBotStats)
+			authorized.POST("/webhook", handlers.UpdateWebhook)
+			authorized.POST("/webhook/verify", handlers.VerifyWebhook)
 		}
 	}
 
@@ -55,7 +57,16 @@ func main() {
 			authorized.GET("", handlers.GetServerList)
 			authorized.GET("/:id", handlers.GetServerInfo)
 			authorized.GET("/:id/voted", handlers.CheckServerVote)
+			authorized.POST("/webhook", handlers.UpdateWebhook)
+			authorized.POST("/webhook/verify", handlers.VerifyWebhook)
 		}
+	}
+
+	// Team routes
+	teams := r.Group("/teams")
+	{
+		teams.GET("", handlers.GetTeamList)
+		teams.GET("/:id", handlers.GetTeamInfo)
 	}
 
 	// User routes

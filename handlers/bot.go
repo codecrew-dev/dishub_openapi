@@ -13,13 +13,20 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+func stringToPtr(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
+}
+
 func GetBotList(c *gin.Context) {
 	query := c.DefaultQuery("query", "")
 	limitStr := c.DefaultQuery("limit", "20")
 	limit, _ := strconv.ParseInt(limitStr, 10, 64)
 
 	collection := database.GetCollection("bots")
-	filter := bson.M{}
+	filter := bson.M{"verified": true}
 	if query != "" {
 		filter["name"] = bson.M{"$regex": query, "$options": "i"}
 	}
@@ -38,13 +45,10 @@ func GetBotList(c *gin.Context) {
 	}
 
 	for i := range bots {
-		bots[i].Library = bots[i].Submission.Library
-		bots[i].Website = bots[i].Submission.Website
-		bots[i].SupportServer = bots[i].Submission.SupportServer
-		bots[i].InviteUrl = bots[i].Submission.InviteUrl
-		bots[i].BotLangs = bots[i].Submission.BotLangs
-		bots[i].ShortDescs = bots[i].Submission.ShortDescs
-		bots[i].LongDescs = bots[i].Submission.LongDescs
+		// Also handle Banner which is directly mapped from BSON
+		if bots[i].Banner != nil && *bots[i].Banner == "" {
+			bots[i].Banner = nil
+		}
 	}
 
 	c.JSON(http.StatusOK, bots)
@@ -55,7 +59,7 @@ func GetBotInfo(c *gin.Context) {
 	collection := database.GetCollection("bots")
 
 	var bot models.BotResponse
-	err := collection.FindOne(c.Request.Context(), bson.M{"botId": botID}).Decode(&bot)
+	err := collection.FindOne(c.Request.Context(), bson.M{"botId": botID, "verified": true}).Decode(&bot)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Bot not found"})
@@ -65,13 +69,10 @@ func GetBotInfo(c *gin.Context) {
 		return
 	}
 
-	bot.Library = bot.Submission.Library
-	bot.Website = bot.Submission.Website
-	bot.SupportServer = bot.Submission.SupportServer
-	bot.InviteUrl = bot.Submission.InviteUrl
-	bot.BotLangs = bot.Submission.BotLangs
-	bot.ShortDescs = bot.Submission.ShortDescs
-	bot.LongDescs = bot.Submission.LongDescs
+	// Also handle Banner
+	if bot.Banner != nil && *bot.Banner == "" {
+		bot.Banner = nil
+	}
 
 	c.JSON(http.StatusOK, bot)
 }
@@ -101,6 +102,11 @@ func CheckBotVote(c *gin.Context) {
 		"userId":    userID,
 		"updatedAt": bson.M{"$gte": time.Now().Add(-12 * time.Hour)},
 	})
+	
+	// Also check if bot is verified
+	botCollection := database.GetCollection("bots")
+	var bot models.BotResponse
+	err = botCollection.FindOne(c.Request.Context(), bson.M{"botId": botID, "verified": true}).Decode(&bot)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
@@ -126,9 +132,22 @@ func UpdateBotStats(c *gin.Context) {
 	}
 
 	collection := database.GetCollection("bots")
-	_, err := collection.UpdateOne(
+	
+	// Fetch old stats for webhook
+	var bot models.BotResponse
+	err := collection.FindOne(c.Request.Context(), bson.M{"botId": botID, "verified": true}).Decode(&bot)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Bot is not verified or not found"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		}
+		return
+	}
+
+	_, err = collection.UpdateOne(
 		c.Request.Context(),
-		bson.M{"botId": botID},
+		bson.M{"botId": botID, "verified": true},
 		bson.M{"$set": bson.M{
 			"serverCount": req.Servers,
 			"shards":      req.Shards,
@@ -138,6 +157,21 @@ func UpdateBotStats(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update stats"})
 		return
 	}
+
+	// Trigger Webhook
+	go func() {
+		payload := gin.H{
+			"type": "bot",
+			"data": gin.H{
+				"type":   1, // Server count update
+				"botId":  botID,
+				"before": bot.Servers,
+				"after":  req.Servers,
+			},
+			"timestamp": time.Now().UnixMilli(),
+		}
+		SendWebhookNotification(app, payload)
+	}()
 
 	c.JSON(http.StatusOK, gin.H{"success": true, "servers": req.Servers, "shards": req.Shards, "message": "Stats updated successfully"})
 }
