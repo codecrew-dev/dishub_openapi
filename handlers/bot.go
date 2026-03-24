@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -159,6 +160,7 @@ func UpdateBotStats(c *gin.Context) {
 	}
 
 	// Trigger Webhook
+	log.Printf("[Webhook] Triggering for bot %s, app %v", botID, app.ID)
 	go func() {
 		payload := gin.H{
 			"type": "bot",
@@ -171,6 +173,23 @@ func UpdateBotStats(c *gin.Context) {
 			"timestamp": time.Now().UnixMilli(),
 		}
 		SendWebhookNotification(app, payload)
+
+		// Trigger Discord Webhook (Embed)
+		if app.DiscordWebhookURL != "" {
+			log.Printf("[Webhook] Sending Discord embed to %s", app.DiscordWebhookURL)
+			embed := models.DiscordEmbed{
+				Title: "📊 봇 통계 업데이트",
+				Description: bot.Name + " 봇의 통계가 업데이트되었습니다.",
+				Color: 0x5865F2,
+				Fields: []models.DiscordEmbedField{
+					{Name: "서버 수", Value: strconv.Itoa(bot.Servers) + " → " + strconv.Itoa(req.Servers), Inline: true},
+					{Name: "샤드 수", Value: strconv.Itoa(bot.Shards) + " → " + strconv.Itoa(req.Shards), Inline: true},
+				},
+				Timestamp: time.Now().Format(time.RFC3339),
+				Footer: &models.DiscordFooter{Text: "DisHub Developer Portal"},
+			}
+			SendDiscordWebhookEmbed(app.DiscordWebhookURL, embed)
+		}
 	}()
 
 	c.JSON(http.StatusOK, gin.H{"success": true, "servers": req.Servers, "shards": req.Shards, "message": "Stats updated successfully"})

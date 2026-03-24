@@ -1,21 +1,24 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
+	"log"
 	"net/http"
+	"time"
+
 	"dishub_openapi/database"
 	"dishub_openapi/models"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
-    "bytes"
-    "time"
-    "errors"
 )
 
 type WebhookUpdateRequest struct {
-	URL    string   `json:"url"`
-	Secret string   `json:"secret"`
-	Events []string `json:"events"`
+	URL        string   `json:"url"`
+	Secret     string   `json:"secret"`
+	Events     []string `json:"events"`
+	DiscordURL string   `json:"discordURL"`
 }
 
 func UpdateWebhook(c *gin.Context) {
@@ -36,9 +39,10 @@ func UpdateWebhook(c *gin.Context) {
 	collection := database.GetCollection("developerapps")
 	_, err := collection.UpdateOne(c.Request.Context(), bson.M{"_id": devApp.ID}, bson.M{
 		"$set": bson.M{
-			"webhookURL":    req.URL,
-			"webhookSecret": req.Secret,
-			"webhookEvents": req.Events,
+			"webhookURL":         req.URL,
+			"webhookSecret":      req.Secret,
+			"webhookEvents":      req.Events,
+			"discordWebhookURL": req.DiscordURL,
 		},
 	})
 	if err != nil {
@@ -89,35 +93,80 @@ func VerifyWebhook(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Webhook verified successfully"})
 }
 
-// SendWebhook logic (placeholder, should be in a utility for reuse)
+// SendWebhookNotification sends a standard webhook notification
 func SendWebhookNotification(devApp models.DeveloperApp, payload interface{}) error {
-    if devApp.WebhookURL == "" {
-        return nil
-    }
+	if devApp.WebhookURL == "" {
+		return nil
+	}
 
-    body, err := json.Marshal(payload)
-    if err != nil {
-        return err
-    }
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
 
-    req, err := http.NewRequest("POST", devApp.WebhookURL, bytes.NewBuffer(body))
-    if err != nil {
-        return err
-    }
+	req, err := http.NewRequest("POST", devApp.WebhookURL, bytes.NewBuffer(body))
+	if err != nil {
+		return err
+	}
 
-    req.Header.Set("Content-Type", "application/json")
-    req.Header.Set("X-DisHub-Signature", devApp.WebhookSecret)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-DisHub-Signature", devApp.WebhookSecret)
 
-    client := &http.Client{Timeout: 10 * time.Second}
-    resp, err := client.Do(req)
-    if err != nil {
-        return err
-    }
-    defer resp.Body.Close()
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
 
-    if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-        return errors.New("webhook returned status: " + resp.Status)
-    }
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return errors.New("webhook returned status: " + resp.Status)
+	}
 
-    return nil
+	return nil
+}
+
+type DiscordWebhookPayload struct {
+	Embeds []models.DiscordEmbed `json:"embeds"`
+}
+
+func SendDiscordWebhookEmbed(discordURL string, embed models.DiscordEmbed) error {
+	log.Printf("[Discord Webhook] Sending to %s", discordURL)
+	if discordURL == "" {
+		return nil
+	}
+
+	payload := DiscordWebhookPayload{
+		Embeds: []models.DiscordEmbed{embed},
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		log.Printf("[Discord Webhook] Marshal Error: %v", err)
+		return err
+	}
+
+	req, err := http.NewRequest("POST", discordURL, bytes.NewBuffer(body))
+	if err != nil {
+		log.Printf("[Discord Webhook] Request Error: %v", err)
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("[Discord Webhook] Execution Error: %v", err)
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		log.Printf("[Discord Webhook] Received status %d: %s", resp.StatusCode, resp.Status)
+		return errors.New("discord webhook returned status: " + resp.Status)
+	}
+
+	log.Printf("[Discord Webhook] Successfully sent!")
+	return nil
 }

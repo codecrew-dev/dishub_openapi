@@ -47,9 +47,10 @@ type DeveloperApp struct {
 	TargetId      string             `bson:"targetId"`
 	TokenPrefix   string             `bson:"tokenPrefix"`
 	TokenHash     string             `bson:"tokenHash"`
-	WebhookURL    string             `json:"webhookURL" bson:"webhookURL"`
-	WebhookSecret string             `json:"webhookSecret" bson:"webhookSecret"`
-	WebhookEvents []string           `json:"webhookEvents" bson:"webhookEvents"`
+	WebhookURL        string             `json:"webhookURL" bson:"webhookURL"`
+	WebhookSecret     string             `json:"webhookSecret" bson:"webhookSecret"`
+	WebhookEvents     []string           `json:"webhookEvents" bson:"webhookEvents"`
+	DiscordWebhookURL string             `json:"discordWebhookURL" bson:"discordWebhookURL"`
 }
 
 type ServerResponse struct {
@@ -102,4 +103,23 @@ type TeamResponse struct {
 	Members         []TeamMember       `json:"members" bson:"members"`
 	CreatedAt       time.Time          `json:"createdAt" bson:"createdAt"`
 	UpdatedAt       time.Time          `json:"updatedAt" bson:"updatedAt"`
+}
+
+type DiscordEmbedField struct {
+	Name   string `json:"name"`
+	Value  string `json:"value"`
+	Inline bool   `json:"inline,omitempty"`
+}
+
+type DiscordFooter struct {
+	Text string `json:"text"`
+}
+
+type DiscordEmbed struct {
+	Title       string              `json:"title"`
+	Description string              `json:"description,omitempty"`
+	Color       int                 `json:"color,omitempty"`
+	Fields      []DiscordEmbedField `json:"fields,omitempty"`
+	Timestamp   string              `json:"timestamp,omitempty"`
+	Footer      *DiscordFooter      `json:"footer,omitempty"`
 }
