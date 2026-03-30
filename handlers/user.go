@@ -3,12 +3,44 @@ package handlers
 import (
 	"net/http"
 
+	"strconv"
 	"dishub_openapi/database"
 	"dishub_openapi/models"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+func GetUserList(c *gin.Context) {
+	query := c.DefaultQuery("query", "")
+	limitStr := c.DefaultQuery("limit", "20")
+	limit, _ := strconv.ParseInt(limitStr, 10, 64)
+
+	collection := database.GetCollection("users")
+	filter := bson.M{}
+	if query != "" {
+		filter["$or"] = []bson.M{
+			{"username": bson.M{"$regex": query, "$options": "i"}},
+			{"globalName": bson.M{"$regex": query, "$options": "i"}},
+		}
+	}
+
+	cursor, err := collection.Find(c.Request.Context(), filter, options.Find().SetLimit(limit))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch users"})
+		return
+	}
+	defer cursor.Close(c.Request.Context())
+
+	var users []models.UserResponse
+	if err = cursor.All(c.Request.Context(), &users); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode users"})
+		return
+	}
+
+	c.JSON(http.StatusOK, users)
+}
 
 func GetUserInfo(c *gin.Context) {
 	userID := c.Param("id")

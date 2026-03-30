@@ -175,18 +175,30 @@ func UpdateBotStats(c *gin.Context) {
 		SendWebhookNotification(app, payload)
 
 		// Trigger Discord Webhook (Embed)
-		if app.DiscordWebhookURL != "" {
+		hasBotServerCount := false
+		for _, e := range app.WebhookEvents {
+			if e == "bot.server_count" {
+				hasBotServerCount = true
+				break
+			}
+		}
+
+		if app.DiscordWebhookURL != "" && hasBotServerCount {
 			log.Printf("[Webhook] Sending Discord embed to %s", app.DiscordWebhookURL)
 			embed := models.DiscordEmbed{
-				Title: "📊 봇 통계 업데이트",
-				Description: bot.Name + " 봇의 통계가 업데이트되었습니다.",
+				Author: &models.DiscordAuthor{
+					Name:    bot.Name,
+					IconURL: bot.Avatar,
+					URL:     "https://dishub.codecrew.kr/bots/" + botID,
+				},
+				Title: "📊 서버 수 변동",
 				Color: 0x5865F2,
 				Fields: []models.DiscordEmbedField{
-					{Name: "서버 수", Value: strconv.Itoa(bot.Servers) + " → " + strconv.Itoa(req.Servers), Inline: true},
-					{Name: "샤드 수", Value: strconv.Itoa(bot.Shards) + " → " + strconv.Itoa(req.Shards), Inline: true},
+					{Name: "이전", Value: "`" + strconv.Itoa(bot.Servers) + "`개", Inline: true},
+					{Name: "이후", Value: "`" + strconv.Itoa(req.Servers) + "`개", Inline: true},
 				},
 				Timestamp: time.Now().Format(time.RFC3339),
-				Footer: &models.DiscordFooter{Text: "DisHub Developer Portal"},
+				Footer:    &models.DiscordFooter{Text: "DisHub"},
 			}
 			SendDiscordWebhookEmbed(app.DiscordWebhookURL, embed)
 		}

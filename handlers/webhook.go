@@ -39,10 +39,10 @@ func UpdateWebhook(c *gin.Context) {
 	collection := database.GetCollection("developerapps")
 	_, err := collection.UpdateOne(c.Request.Context(), bson.M{"_id": devApp.ID}, bson.M{
 		"$set": bson.M{
-			"webhookURL":         req.URL,
+			"webhookUrl":         req.URL,
 			"webhookSecret":      req.Secret,
 			"webhookEvents":      req.Events,
-			"discordWebhookURL": req.DiscordURL,
+			"discordWebhookUrl": req.DiscordURL,
 		},
 	})
 	if err != nil {

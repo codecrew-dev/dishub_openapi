@@ -64,6 +64,7 @@ func main() {
 
 	// Team routes
 	teams := r.Group("/teams")
+	teams.Use(middleware.AuthMiddleware())
 	{
 		teams.GET("", handlers.GetTeamList)
 		teams.GET("/:id", handlers.GetTeamInfo)
@@ -71,8 +72,9 @@ func main() {
 
 	// User routes
 	users := r.Group("/users")
+	users.Use(middleware.AuthMiddleware())
 	{
-		// Public endpoint
+		users.GET("", handlers.GetUserList)
 		users.GET("/:id", handlers.GetUserInfo)
 	}
 

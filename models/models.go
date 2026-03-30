@@ -34,6 +34,8 @@ type BotResponse struct {
 	DiscordVerified bool `json:"discordVerified" bson:"discordVerified"`
 	Status      string   `json:"status" bson:"status"`
 	Badge    bool     `json:"badge" bson:"badge"`
+	Rating      float64  `json:"rating" bson:"rating"`
+	ReviewCount int      `json:"reviewCount" bson:"reviewCount"`
 }
 
 type BotVotedResponse struct {
@@ -47,10 +49,10 @@ type DeveloperApp struct {
 	TargetId      string             `bson:"targetId"`
 	TokenPrefix   string             `bson:"tokenPrefix"`
 	TokenHash     string             `bson:"tokenHash"`
-	WebhookURL        string             `json:"webhookURL" bson:"webhookURL"`
+	WebhookURL        string             `json:"webhookURL" bson:"webhookUrl"`
 	WebhookSecret     string             `json:"webhookSecret" bson:"webhookSecret"`
 	WebhookEvents     []string           `json:"webhookEvents" bson:"webhookEvents"`
-	DiscordWebhookURL string             `json:"discordWebhookURL" bson:"discordWebhookURL"`
+	DiscordWebhookURL string             `json:"discordWebhookURL" bson:"discordWebhookUrl"`
 }
 
 type ServerResponse struct {
@@ -68,6 +70,8 @@ type ServerResponse struct {
 	BoostTier   int      `json:"boostTier" bson:"boostTier"`
 	ServerLangs []string `json:"serverLangs" bson:"serverLangs"`
 	DescLang    string   `json:"descLang" bson:"descLang"`
+	Rating      float64  `json:"rating" bson:"rating"`
+	ReviewCount int      `json:"reviewCount" bson:"reviewCount"`
 }
 
 type ServerVotedResponse struct {
@@ -115,7 +119,14 @@ type DiscordFooter struct {
 	Text string `json:"text"`
 }
 
+type DiscordAuthor struct {
+	Name    string `json:"name"`
+	URL     string `json:"url,omitempty"`
+	IconURL string `json:"icon_url,omitempty"`
+}
+
 type DiscordEmbed struct {
+	Author      *DiscordAuthor      `json:"author,omitempty"`
 	Title       string              `json:"title"`
 	Description string              `json:"description,omitempty"`
 	Color       int                 `json:"color,omitempty"`
