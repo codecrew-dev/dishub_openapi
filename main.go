@@ -31,6 +31,7 @@ func main() {
 	r.Use(gin.Recovery())
 	r.Use(gin.Logger())
 	r.Use(middleware.RateLimitMiddleware())
+	r.Use(middleware.IpBanMiddleware())
 
 	// Bot routes
 	bots := r.Group("/bots")
@@ -80,7 +81,7 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "3002"
+		port = "3014"
 	}
 	log.Printf("Server starting on port %s", port)
 	r.Run("0.0.0.0:" + port)

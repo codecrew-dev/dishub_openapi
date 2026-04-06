@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strconv"
 	"time"
-
 	"dishub_openapi/database"
+	"dishub_openapi/logger"
 	"dishub_openapi/models"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
@@ -173,6 +173,20 @@ func UpdateBotStats(c *gin.Context) {
 			"timestamp": time.Now().UnixMilli(),
 		}
 		SendWebhookNotification(app, payload)
+
+		// System Log (Discord Audit)
+		if bot.Servers != req.Servers {
+			logger.SendSystemLog(logger.SystemLogPayload{
+				Title:       "봇 서버 수 갱신",
+				Description: "봇 **" + bot.Name + "**의 서버 수가 갱신되었습니다.",
+				Color:       0x5865F2,
+				Fields: []logger.LogField{
+					{Name: "이전", Value: strconv.Itoa(bot.Servers) + " 개", Inline: true},
+					{Name: "이후", Value: strconv.Itoa(req.Servers) + " 개", Inline: true},
+				},
+				URL: "https://dishub.codecrew.kr/bots/" + botID,
+			})
+		}
 
 		// Trigger Discord Webhook (Embed)
 		hasBotServerCount := false

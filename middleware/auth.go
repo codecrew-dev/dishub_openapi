@@ -32,10 +32,19 @@ func AuthMiddleware() gin.HandlerFunc {
 		hash := sha256.Sum256([]byte(authHeader))
 		hashedToken := hex.EncodeToString(hash[:])
 
+		// Check if token is banned
+		banCollection := database.GetCollection("openapibans")
+		err := banCollection.FindOne(c.Request.Context(), bson.M{"targetId": hashedToken, "type": "token"}).Decode(&bson.M{})
+		if err == nil {
+			c.JSON(http.StatusForbidden, gin.H{"error": "This token is banned from accessing the API"})
+			c.Abort()
+			return
+		}
+
 		// Find the app in DB
 		collection := database.GetCollection("developerapps")
 		var app models.DeveloperApp
-		err := collection.FindOne(c.Request.Context(), bson.M{"tokenHash": hashedToken}).Decode(&app)
+		err = collection.FindOne(c.Request.Context(), bson.M{"tokenHash": hashedToken}).Decode(&app)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 			c.Abort()
