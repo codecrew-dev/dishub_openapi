@@ -110,8 +110,9 @@ func SendWebhookNotification(devApp models.DeveloperApp, payload interface{}) er
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-DisHub-Signature", devApp.WebhookSecret)
-
+        req.Header.Set("X-DisHub-Signature", devApp.WebhookSecret)
+	req.Header.Set("Authorization", devApp.WebhookSecret)
+	req.Header.Set("secret", devApp.WebhookSecret)
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {

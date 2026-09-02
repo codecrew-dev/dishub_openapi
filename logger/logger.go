@@ -26,10 +26,10 @@ type SystemLogPayload struct {
 func SendSystemLog(payload SystemLogPayload) {
 	go func() {
 		ipcURL := os.Getenv("BOT_IPC_URL")
-		syncToken := os.Getenv("BOT_SYNC_TOKEN")
+		syncToken := os.Getenv("API_BOT_IPC_TOKEN")
 
 		if ipcURL == "" || syncToken == "" {
-			log.Println("[Logger] BOT_IPC_URL or BOT_SYNC_TOKEN not set. Skipping log.")
+			log.Println("[Logger] BOT_IPC_URL or API_BOT_IPC_TOKEN not set. Skipping log.")
 			return
 		}
 

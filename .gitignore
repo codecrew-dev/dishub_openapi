@@ -22,3 +22,7 @@
 
 # Local test scripts
 main.py
+
+# Compiled binaries
+/main
+/dishub_openapi

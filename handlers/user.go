@@ -3,7 +3,6 @@ package handlers
 import (
 	"net/http"
 
-	"strconv"
 	"dishub_openapi/database"
 	"dishub_openapi/models"
 	"github.com/gin-gonic/gin"
@@ -13,9 +12,8 @@ import (
 )
 
 func GetUserList(c *gin.Context) {
-	query := c.DefaultQuery("query", "")
-	limitStr := c.DefaultQuery("limit", "20")
-	limit, _ := strconv.ParseInt(limitStr, 10, 64)
+	query := c.DefaultQuery("query", c.DefaultQuery("q", ""))
+	p := parsePagination(c)
 
 	collection := database.GetCollection("users")
 	filter := bson.M{}
@@ -26,7 +24,14 @@ func GetUserList(c *gin.Context) {
 		}
 	}
 
-	cursor, err := collection.Find(c.Request.Context(), filter, options.Find().SetLimit(limit))
+	total, err := collection.CountDocuments(c.Request.Context(), filter)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to count users"})
+		return
+	}
+
+	findOpts := options.Find().SetLimit(p.Limit).SetSkip(p.Skip)
+	cursor, err := collection.Find(c.Request.Context(), filter, findOpts)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch users"})
 		return
@@ -38,8 +43,17 @@ func GetUserList(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode users"})
 		return
 	}
+	if users == nil {
+		users = []models.UserResponse{}
+	}
 
-	c.JSON(http.StatusOK, users)
+	c.JSON(http.StatusOK, models.PaginatedResponse[models.UserResponse]{
+		Data:       users,
+		Total:      total,
+		Page:       p.Page,
+		TotalPages: calcTotalPages(total, p.Limit),
+		Limit:      p.Limit,
+	})
 }
 
 func GetUserInfo(c *gin.Context) {

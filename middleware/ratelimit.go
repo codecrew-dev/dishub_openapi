@@ -15,8 +15,9 @@ type clientLimit struct {
 }
 
 var (
-	clients = make(map[string]*clientLimit)
-	mu      sync.Mutex
+	clients     = make(map[string]*clientLimit)
+	mu          sync.Mutex
+	lastCleanup = time.Now()
 )
 
 const (
@@ -30,6 +31,14 @@ func RateLimitMiddleware() gin.HandlerFunc {
 		now := time.Now()
 
 		mu.Lock()
+		if now.Sub(lastCleanup) >= windowPeriod {
+			for ip, entry := range clients {
+				if now.After(entry.resetTime) {
+					delete(clients, ip)
+				}
+			}
+			lastCleanup = now
+		}
 		client, exists := clients[clientIP]
 
 		if !exists || now.After(client.resetTime) {
